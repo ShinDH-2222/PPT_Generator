@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI PPT 생성기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c28;
+    --border: #2a2a3d; --accent: #7c6af7; --accent2: #a78bfa;
+    --text: #e8e8f0; --muted: #6b6b8a; --success: #34d399; --error: #f87171;
+  }
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 40px 20px;
+  }
+  .header { text-align: center; margin-bottom: 48px; }
+  .logo { font-size: 13px; font-weight: 600; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--accent2); margin-bottom: 20px; opacity: 0.8; }
+  h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1.2; margin-bottom: 12px; }
+  .subtitle { color: var(--muted); font-size: 15px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px; width: 100%; max-width: 680px;
+    margin-bottom: 20px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 14px;
+    padding: 48px 32px; text-align: center; cursor: pointer;
+    transition: all 0.3s; position: relative; background: var(--bg); }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(124,106,247,.05); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 40px; margin-bottom: 16px; display: block; }
+  .drop-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .drop-sub { font-size: 13px; color: var(--muted); }
+  .file-info { display: none; align-items: center; gap: 12px; padding: 14px 18px;
+    background: rgba(124,106,247,.1); border: 1px solid rgba(124,106,247,.3);
+    border-radius: 10px; margin-top: 16px; }
+  .file-info.show { display: flex; }
+  .file-name { font-size: 14px; font-weight: 500; color: var(--accent2);
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; }
+  .field select { background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px; color: var(--text);
+    font-size: 14px; font-family: inherit; width: 100%;
+    transition: border-color .2s; appearance: none; }
+  .field select:focus { outline: none; border-color: var(--accent); }
+  .btn-generate { width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent), #9b87fc);
+    color: white; border: none; border-radius: 14px; font-size: 16px;
+    font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: all .3s; display: flex; align-items: center;
+    justify-content: center; gap: 10px; }
+  .btn-generate:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,106,247,.4); }
+  .btn-generate:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .progress-card { display: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px 36px; width: 100%; max-width: 680px; margin-bottom: 20px; }
+  .progress-card.show { display: block; }
+  .progress-steps { display: flex; flex-direction: column; gap: 14px; }
+  .step { display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--muted); transition: color .3s; }
+  .step.active { color: var(--text); }
+  .step.done { color: var(--success); }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; transition: all .3s; }
+  .step.active .step-dot { border-color: var(--accent); background: rgba(124,106,247,.15); animation: pulse 1.5s infinite; }
+  .step.done .step-dot { border-color: var(--success); background: rgba(52,211,153,.15); color: var(--success); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(124,106,247,.4)} 50%{box-shadow:0 0 0 6px rgba(124,106,247,0)} }
+  .result-card { display: none; background: var(--surface); border: 1px solid rgba(52,211,153,.3);
+    border-radius: 20px; padding: 32px 36px; width: 100%; max-width: 680px; text-align: center; margin-bottom: 20px; }
+  .result-card.show { display: block; }
+  .result-icon { font-size: 48px; margin-bottom: 16px; }
+  .result-title { font-size: 22px; font-weight: 700; color: var(--success); margin-bottom: 8px; }
+  .result-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .btn-download { display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px; background: var(--success); color: #0a2e1f;
+    border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer; transition: all .2s; }
+  .btn-download:hover { opacity: .9; transform: translateY(-1px); }
+  .error-msg { display: none; padding: 14px 18px; background: rgba(248,113,113,.1);
+    border: 1px solid rgba(248,113,113,.3); border-radius: 10px;
+    color: var(--error); font-size: 13px; margin-top: 16px; }
+  .error-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">✦ AI Studio</div>
+  <h1>파일로 PPT 생성</h1>
+  <p class="subtitle">문서나 텍스트를 올리면 AI가 자동으로 프레젠테이션을 만들어 드려요</p>
+</div>
+
+<div class="card">
+  <div class="section-label">📎 파일 첨부</div>
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.csv,.json">
+    <span class="drop-icon">📂</span>
+    <div class="drop-title">클릭하거나 파일을 드래그하세요</div>
+    <div class="drop-sub">지원 형식: TXT, MD, PDF, DOCX, CSV, JSON</div>
+  </div>
+  <div class="file-info" id="fileInfo">
+    <span class="file-icon" id="fileIcon">📄</span>
+    <span class="file-name" id="fileName"></span>
+    <span style="color:var(--muted);font-size:12px;" id="fileSize"></span>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+</div>
+
+<div class="card">
+  <div class="section-label">⚙️ 설정</div>
+  <div class="settings-grid">
+    <div class="field">
+      <label>슬라이드 수</label>
+      <select id="slideCount">
+        <option value="5">5장</option>
+        <option value="8" selected>8장</option>
+        <option value="10">10장</option>
+        <option value="12">12장</option>
+        <option value="15">15장</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>발표 언어</label>
+      <select id="language">
+        <option value="Korean" selected>한국어</option>
+        <option value="English">영어</option>
+        <option value="Japanese">일본어</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>테마 색상</label>
+      <select id="theme">
+        <option value="dark">다크 (Navy)</option>
+        <option value="corporate">코퍼레이트 (Blue)</option>
+        <option value="modern">모던 (Purple)</option>
+        <option value="warm">웜 (Terracotta)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>발표 목적</label>
+      <select id="purpose">
+        <option value="general">일반 발표</option>
+        <option value="business">비즈니스 제안</option>
+        <option value="education">교육/강의</option>
+        <option value="research">연구 보고</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div style="width:100%;max-width:680px;margin-bottom:20px;">
+  <button class="btn-generate" id="generateBtn" onclick="generatePPT()">
+    <span>✨</span> PPT 생성하기
+  </button>
+</div>
+
+<div class="progress-card" id="progressCard">
+  <div class="section-label" style="margin-bottom:24px;">🤖 AI 처리 중...</div>
+  <div class="progress-steps">
+    <div class="step" id="step1"><div class="step-dot" id="dot1">1</div><span>파일 업로드 중</span></div>
+    <div class="step" id="step2"><div class="step-dot" id="dot2">2</div><span>Claude AI가 내용 분석 중</span></div>
+    <div class="step" id="step3"><div class="step-dot" id="dot3">3</div><span>슬라이드 구성 생성 중</span></div>
+    <div class="step" id="step4"><div class="step-dot" id="dot4">4</div><span>PPT 파일 생성 중</span></div>
+  </div>
+</div>
+
+<div class="result-card" id="resultCard">
+  <div class="result-icon">🎉</div>
+  <div class="result-title">PPT 완성!</div>
+  <div class="result-sub" id="resultSub">AI가 슬라이드를 성공적으로 생성했어요</div>
+  <button class="btn-download" id="downloadBtn">⬇️ PPT 다운로드</button>
+</div>
+
+<script>
+  function setStep(n, status) {
+    const step = document.getElementById('step' + n);
+    const dot  = document.getElementById('dot' + n);
+    step.className = 'step ' + status;
+    dot.innerHTML  = status === 'done' ? '✓' : String(n);
+  }
+
+  async function generatePPT() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) { showError('파일을 먼저 선택해주세요!'); return; }
+
+    document.getElementById('errorMsg').className = 'error-msg';
+    document.getElementById('generateBtn').disabled = true;
+    document.getElementById('progressCard').className = 'progress-card show';
+    document.getElementById('resultCard').className = 'result-card';
+    [1,2,3,4].forEach(n => setStep(n, ''));
+
+    try {
+      setStep(1, 'active');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('slide_count', document.getElementById('slideCount').value);
+      formData.append('language',    document.getElementById('language').value);
+      formData.append('theme',       document.getElementById('theme').value);
+      formData.append('purpose',     document.getElementById('purpose').value);
+      setStep(1, 'done'); setStep(2, 'active');
+
+      const res = await fetch('/generate', { method: 'POST', body: formData });
+      setStep(2, 'done'); setStep(3, 'active');
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || '서버 오류');
+      }
+
+      setStep(3, 'done'); setStep(4, 'active');
+      const blob = await res.blob();
+      const title = decodeURIComponent(res.headers.get('X-Presentation-Title') || 'presentation');
+      setStep(4, 'done');
+
+      document.getElementById('resultSub').textContent = `"${title}" PPT가 준비됐어요`;
+      document.getElementById('resultCard').className = 'result-card show';
+      document.getElementById('downloadBtn').onclick = () => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = title + '.pptx'; a.click();
+        URL.revokeObjectURL(url);
+      };
+    } catch (err) {
+      showError('오류: ' + err.message);
+      document.getElementById('progressCard').className = 'progress-card';
+    } finally {
+      document.getElementById('generateBtn').disabled = false;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.className = 'error-msg show';
+  }
+
+  const fileInput = document.getElementById('fileInput');
+  const dropZone  = document.getElementById('dropZone');
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) showFile(e.target.files[0]); });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) { fileInput.files = e.dataTransfer.files; showFile(f); }
+  });
+  function showFile(f) {
+    const icons = { pdf:'📕', docx:'📘', txt:'📄', md:'📝', csv:'📊', json:'🔧' };
+    const ext = f.name.split('.').pop().toLowerCase();
+    document.getElementById('fileIcon').textContent = icons[ext] || '📄';
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent = (f.size/1024).toFixed(1) + ' KB';
+    document.getElementById('fileInfo').className = 'file-info show';
+    document.getElementById('errorMsg').className = 'error-msg';
+  }
+</script>
+</body>
+</html>
