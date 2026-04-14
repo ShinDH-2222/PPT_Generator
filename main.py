@@ -166,22 +166,34 @@ def add_chart_slide(slide, slide_info, t):
         )
         chart = chart_shape.chart
 
-        chart.chart_area.format.fill.solid()
-        chart.chart_area.format.fill.fore_color.rgb = hex_to_rgb(t["bg"])
-        chart.plot_area.format.fill.solid()
-        chart.plot_area.format.fill.fore_color.rgb = hex_to_rgb(t["bg"])
+        try:
+            chart.chart_area.format.fill.solid()
+            chart.chart_area.format.fill.fore_color.rgb = hex_to_rgb(t["bg"])
+        except Exception:
+            pass
+        try:
+            chart.plot_area.format.fill.solid()
+            chart.plot_area.format.fill.fore_color.rgb = hex_to_rgb(t["bg"])
+        except Exception:
+            pass
 
         series_colors = [t["accent"], "FFFFFF", t["body"], "FF8C00", "00CED1"]
-        for i, series in enumerate(chart.series):
-            series.format.fill.solid()
-            series.format.fill.fore_color.rgb = hex_to_rgb(series_colors[i % len(series_colors)])
+        try:
+            for i, series in enumerate(chart.series):
+                series.format.fill.solid()
+                series.format.fill.fore_color.rgb = hex_to_rgb(series_colors[i % len(series_colors)])
+        except Exception:
+            pass
 
-        if xl_type == XL_CHART_TYPE.PIE or len(series_list) > 1:
-            chart.has_legend = True
-            chart.legend.font.size = Pt(11)
-            chart.legend.font.color.rgb = hex_to_rgb(t["body"])
-        else:
-            chart.has_legend = False
+        try:
+            if xl_type == XL_CHART_TYPE.PIE or len(series_list) > 1:
+                chart.has_legend = True
+                chart.legend.font.size = Pt(11)
+                chart.legend.font.color.rgb = hex_to_rgb(t["body"])
+            else:
+                chart.has_legend = False
+        except Exception:
+            pass
 
         try:
             chart.category_axis.tick_labels.font.color.rgb = hex_to_rgb(t["body"])
