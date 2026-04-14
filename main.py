@@ -457,7 +457,7 @@ def call_claude(file_content: str, file_name: str, slide_count: int, language: s
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=4096,
+        max_tokens=8192,
         system=[{
             "type": "text",
             "text": SYSTEM_PROMPT,
@@ -473,7 +473,24 @@ def call_claude(file_content: str, file_name: str, slide_count: int, language: s
         if raw.startswith("json"):
             raw = raw[4:]
     raw = raw.strip()
-    return json.loads(raw)
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # 응답이 잘렸을 경우: closing 슬라이드를 강제 삽입하고 닫기 시도
+        # 마지막 완전한 슬라이드 객체까지만 잘라내기
+        last_brace = raw.rfind("},")
+        if last_brace == -1:
+            last_brace = raw.rfind("}")
+        if last_brace != -1:
+            trimmed = raw[:last_brace + 1]
+            # slides 배열 닫기 + 최상위 객체 닫기
+            closing = ',{"type":"closing","title":"감사합니다","message":"","contact":"Q&A"}]}'
+            try:
+                return json.loads(trimmed + closing)
+            except json.JSONDecodeError:
+                pass
+        raise
 
 
 # ── 엔드포인트 ────────────────────────────────────────────────────
