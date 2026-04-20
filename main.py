@@ -742,4 +742,7 @@ def health():
 
 if __name__ == "__main__":
     import uvicorn
+    import threading
+    import webbrowser
+    threading.Timer(1.5, lambda: webbrowser.open("http://localhost:8000")).start()
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
