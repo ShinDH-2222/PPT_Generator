@@ -1,3 +1,26 @@
+import subprocess
+import sys
+
+_PACKAGES = {
+    "fastapi":           "fastapi==0.115.0",
+    "uvicorn":           "uvicorn[standard]==0.30.6",
+    "multipart":         "python-multipart==0.0.12",
+    "dotenv":            "python-dotenv",
+    "anthropic":         "anthropic",
+    "pptx":              "python-pptx",
+    "pdfplumber":        "pdfplumber",
+    "docx":              "python-docx",
+    "openpyxl":          "openpyxl",
+    "xlrd":              "xlrd==1.2.0",
+}
+
+for _import_name, _pkg_name in _PACKAGES.items():
+    try:
+        __import__(_import_name)
+    except ImportError:
+        print(f"[자동설치] {_pkg_name} 설치 중...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", _pkg_name])
+
 import io
 import os
 import re
